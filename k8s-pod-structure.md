@@ -1,6 +1,6 @@
 # Infra Ops — K8s Pod Structure (Live Snapshot: Mar 15, 2026)
 
-## Cluster: inferops-eks (us-east-2, EKS v1.29)
+## Cluster: infra ops-eks (us-east-2, EKS v1.29)
 
 ---
 
