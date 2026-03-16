@@ -1,4 +1,4 @@
-# InferOps — Enhancements, Deviations & Lessons Learned
+# Infra Ops — Enhancements, Deviations & Lessons Learned
 
 This document captures what changed from the original PLAN.md during the initial build session,
 why things broke, what was skipped, and what improvements were made to get the demo working.

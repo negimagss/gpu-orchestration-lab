@@ -1,4 +1,4 @@
-# InferOps — Financial AI Platform (MLOps + RAG + Chat)
+# Infra Ops — Financial AI Platform (MLOps + RAG + Chat)
 
 > Industry-grade ML platform for financial document analysis. Scrapes SEC filings, ingests into a RAG pipeline, and serves a chatbot that answers questions about company financials with precision — deployed on production-grade AWS infrastructure.
 

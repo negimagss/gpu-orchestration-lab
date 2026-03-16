@@ -1,4 +1,4 @@
-# InferOps — Learning Scalable AI/ML Infrastructure
+# Infra Ops — Learning Scalable AI/ML Infrastructure
 
 A hands-on project for learning how to build production-grade infrastructure for AI/ML workloads on AWS. The focus is on the infrastructure layer — GPU scheduling, Kubernetes orchestration, autoscaling, observability, and IaC — not on the model or ML research itself.
 
