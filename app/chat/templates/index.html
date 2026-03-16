@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InferOps — Financial AI Assistant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1117;
+            color: #e4e4e7;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #1a1b23;
+            padding: 16px 24px;
+            border-bottom: 1px solid #2d2d3a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #818cf8;
+        }
+        header .status {
+            font-size: 12px;
+            color: #22c55e;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        header .status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .message {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: #4f46e5;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.assistant {
+            align-self: flex-start;
+            background: #1e1f2e;
+            border: 1px solid #2d2d3a;
+            border-bottom-left-radius: 4px;
+        }
+        .message .sources {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #3d3d4a;
+            font-size: 12px;
+            color: #818cf8;
+        }
+        .input-container {
+            padding: 16px 24px;
+            background: #1a1b23;
+            border-top: 1px solid #2d2d3a;
+        }
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            background: #2d2d3a;
+            border: 1px solid #3d3d4a;
+            border-radius: 8px;
+            color: #e4e4e7;
+            font-size: 14px;
+            outline: none;
+        }
+        input[type="text"]:focus {
+            border-color: #4f46e5;
+        }
+        button {
+            padding: 12px 24px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover { background: #4338ca; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            padding: 12px 16px;
+            background: #1e1f2e;
+            border: 1px solid #2d2d3a;
+            border-radius: 12px;
+            font-size: 14px;
+            color: #a1a1aa;
+        }
+        .typing-indicator.active { display: block; }
+        .welcome {
+            text-align: center;
+            color: #71717a;
+            margin-top: 40px;
+        }
+        .welcome h2 { color: #818cf8; margin-bottom: 8px; font-size: 24px; }
+        .welcome p { font-size: 14px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>InferOps Financial AI</h1>
+        <div class="status" id="status">Connected</div>
+    </header>
+
+    <div class="chat-container" id="chat">
+        <div class="welcome">
+            <h2>Financial Document Assistant</h2>
+            <p>Ask questions about SEC filings, earnings reports, and company financials.</p>
+        </div>
+    </div>
+
+    <div class="typing-indicator" id="typing">Analyzing financial data...</div>
+
+    <div class="input-container">
+        <div class="input-wrapper">
+            <input type="text" id="input" placeholder="Ask about company financials..."
+                   autocomplete="off" autofocus />
+            <button id="send" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const clientId = 'client-' + Math.random().toString(36).substr(2, 9);
+        let currentResponse = null;
+        let eventSource = null;
+
+        function connectSSE() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+
+            eventSource = new EventSource('/api/stream?client_id=' + clientId);
+
+            eventSource.addEventListener('connected', (e) => {
+                document.getElementById('status').textContent = 'Connected';
+            });
+
+            eventSource.addEventListener('token', (e) => {
+                const data = JSON.parse(e.data);
+                if (!currentResponse) {
+                    currentResponse = addMessage('assistant', '');
+                    document.getElementById('typing').classList.remove('active');
+                }
+                currentResponse.querySelector('.text').textContent += data.content;
+                scrollToBottom();
+            });
+
+            eventSource.addEventListener('source', (e) => {
+                const data = JSON.parse(e.data);
+                if (currentResponse) {
+                    let sources = currentResponse.querySelector('.sources');
+                    if (!sources) {
+                        sources = document.createElement('div');
+                        sources.className = 'sources';
+                        sources.innerHTML = '<strong>Sources:</strong> ';
+                        currentResponse.appendChild(sources);
+                    }
+                    sources.innerHTML += data.content + ' | ';
+                }
+            });
+
+            eventSource.addEventListener('done', (e) => {
+                currentResponse = null;
+                document.getElementById('send').disabled = false;
+                document.getElementById('input').disabled = false;
+            });
+
+            eventSource.addEventListener('error', (e) => {
+                if (e.data) {
+                    const data = JSON.parse(e.data);
+                    addMessage('assistant', 'Error: ' + data.content);
+                }
+                currentResponse = null;
+                document.getElementById('send').disabled = false;
+                document.getElementById('input').disabled = false;
+            });
+
+            eventSource.onerror = () => {
+                document.getElementById('status').textContent = 'Reconnecting...';
+                eventSource.close();
+                setTimeout(connectSSE, 3000);
+            };
+        }
+
+        function addMessage(role, text) {
+            const chat = document.getElementById('chat');
+            const welcome = chat.querySelector('.welcome');
+            if (welcome) welcome.remove();
+
+            const msg = document.createElement('div');
+            msg.className = 'message ' + role;
+            msg.innerHTML = '<span class="text">' + text + '</span>';
+            chat.appendChild(msg);
+            scrollToBottom();
+            return msg;
+        }
+
+        function scrollToBottom() {
+            const chat = document.getElementById('chat');
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addMessage('user', message);
+            input.value = '';
+            input.disabled = true;
+            document.getElementById('send').disabled = true;
+            document.getElementById('typing').classList.add('active');
+
+            try {
+                await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, client_id: clientId })
+                });
+            } catch (err) {
+                addMessage('assistant', 'Failed to send message. Please try again.');
+                input.disabled = false;
+                document.getElementById('send').disabled = false;
+                document.getElementById('typing').classList.remove('active');
+            }
+        }
+
+        document.getElementById('input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        connectSSE();
+    </script>
+</body>
+</html>

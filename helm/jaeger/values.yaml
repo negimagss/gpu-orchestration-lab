@@ -1,0 +1,23 @@
+image:
+  repository: jaegertracing/all-in-one
+  tag: "1.54"
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+
+service:
+  type: ClusterIP
+  uiPort: 16686
+  collectorGrpcPort: 14250
+  collectorHttpPort: 14268
+  otlpGrpcPort: 4317
+  otlpHttpPort: 4318
+
+nodeSelector:
+  workload: general

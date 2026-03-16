@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+    component: model-serving
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        component: model-serving
+    spec:
+      containers:
+        - name: vllm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            - name: MODEL_NAME
+              value: {{ .Values.model.name }}
+            - name: MAX_MODEL_LEN
+              value: {{ .Values.model.maxModelLen | quote }}
+            - name: GPU_MEMORY_UTILIZATION
+              value: {{ .Values.model.gpuMemoryUtilization | quote }}
+            - name: DTYPE
+              value: {{ .Values.model.dtype }}
+          command:
+            - python3
+            - -m
+            - vllm.entrypoints.openai.api_server
+            - --model
+            - $(MODEL_NAME)
+            - --max-model-len
+            - $(MAX_MODEL_LEN)
+            - --gpu-memory-utilization
+            - $(GPU_MEMORY_UTILIZATION)
+            - --dtype
+            - $(DTYPE)
+            - --host
+            - "0.0.0.0"
+            - --port
+            - "8000"
+            - --trust-remote-code
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 10
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}

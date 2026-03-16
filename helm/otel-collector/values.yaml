@@ -1,0 +1,23 @@
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: "0.96.0"
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+
+service:
+  type: ClusterIP
+  otlpGrpcPort: 4317
+  otlpHttpPort: 4318
+
+jaeger:
+  endpoint: "jaeger:4317"
+
+nodeSelector:
+  workload: general

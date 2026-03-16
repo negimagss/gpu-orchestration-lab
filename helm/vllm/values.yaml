@@ -1,0 +1,40 @@
+replicaCount: 2
+
+image:
+  repository: "vllm/vllm-openai"  # Official Docker Hub image (3.6GB, skip ECR)
+  tag: "v0.4.1"
+  pullPolicy: IfNotPresent
+
+model:
+  name: "Qwen/Qwen2.5-1.5B-Instruct"
+  maxModelLen: 4096
+  gpuMemoryUtilization: "0.90"
+  dtype: "half"
+
+resources:
+  limits:
+    nvidia.com/gpu: 1
+    memory: "16Gi"
+    cpu: "4"
+  requests:
+    nvidia.com/gpu: 1
+    memory: "12Gi"
+    cpu: "2"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilization: 60  # Lower threshold — triggers scaling earlier
+
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+nodeSelector:
+  karpenter.sh/nodepool: "gpu-inference"

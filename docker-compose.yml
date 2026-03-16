@@ -1,0 +1,68 @@
+version: "3.8"
+
+# ── Local Development Stack ──────────────────────
+# Run everything locally for testing before deploying to AWS.
+# No GPU needed — vLLM is skipped, uses mock responses.
+# Usage: docker-compose up -d
+
+services:
+  # ── Qdrant (Vector DB) ──────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.8.4
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:6333/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Jaeger (Tracing) ────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=memory
+
+  # ── Python RAG Service ─────────────────────────
+  rag-service:
+    build:
+      context: app/rag
+      dockerfile: ../../docker/rag-service/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - VLLM_BASE_URL=http://host.docker.internal:8001/v1  # Local vLLM or mock
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_COLLECTION=sec_filings
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_SERVICE_NAME=inferops-rag-service
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+
+  # ── Go Chat App ────────────────────────────────
+  chat-app:
+    build:
+      context: app/chat
+      dockerfile: ../../docker/chat-app/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - RAG_SERVICE_URL=http://rag-service:8000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=jaeger:4317
+      - PORT=8080
+    depends_on:
+      - rag-service
+
+volumes:
+  qdrant_data:

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.otlpGrpcPort }}
+      targetPort: 4317
+      protocol: TCP
+      name: otlp-grpc
+    - port: {{ .Values.service.otlpHttpPort }}
+      targetPort: 4318
+      protocol: TCP
+      name: otlp-http
+  selector:
+    app: {{ .Release.Name }}

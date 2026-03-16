@@ -1,0 +1,10 @@
+# Airflow DAG dependencies
+requests==2.31.0
+boto3==1.34.0
+langchain==0.1.20
+langchain-community==0.0.38
+qdrant-client==1.8.0
+sentence-transformers==2.5.1
+PyPDF2==3.0.1
+beautifulsoup4==4.12.3
+ragas==0.1.7

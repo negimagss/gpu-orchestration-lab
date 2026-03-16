@@ -1,0 +1,50 @@
+# Terraform
+*.tfstate
+*.tfstate.backup
+tfplan
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Secrets & credentials
+.env
+.env.*
+*.pem
+*.key
+*.crt
+credentials.json
+secrets.yaml
+secrets.yml
+
+# AWS
+.aws/
+
+# Docker
+*.tar.gz
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Go
+vendor/
+
+# Claude Code
+.claude/
